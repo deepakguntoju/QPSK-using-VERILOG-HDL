@@ -1,0 +1,247 @@
+`timescale 1ns / 1ps
+
+module QPSK(
+    output [7:0] QPSKoutput,
+    input wire [31:0] InputData,
+    input wire T,CLK,CLK2,Load,reset
+    );
+wire [7:0] In;
+wire [7:0] Qp;
+wire [5:1]w;
+wire [4:0]xxxxx;
+wire [7:0]w6,w7,w8,w9,w10,w11,w12;
+//paralleltoserial pts(w[1],CLK,reset,InputData,Load);
+fivebitcounter fbc(CLK2,reset,xxxxx);
+mux31 m31(InputData,xxxxx,w[1]);
+
+sin_invsin sis(w8,CLK);
+sin180 si(w9,CLK);
+cos_invcos cic(CLK,w10);
+cos_invcos ci(CLK,w11);
+tff t(w[2],w[3],CLK,T);
+Dff d1(w[2],w[1],w[4]);
+Dff d2(w[3],w[1],w[5]);
+mux m1(w8,w9,w[4],In);
+mux m2(w10,w11,w[5],Qp);
+adder a1(In,Qp,QPSKoutput);
+
+endmodule
+//////////sin and inv sin////////////////
+module sin_invsin(   
+    output reg [7:0] sin,
+    input clk
+    );
+parameter SIZE = 60;    
+reg [7:0] rom_memory [SIZE-1:0];
+integer i;
+initial begin
+    $readmemh("sine.mem", rom_memory); //File with the signal
+    i = 0;
+end    
+//At every positive edge of the clock, output a sine wave sample.
+always@(posedge clk)
+begin
+    sin = rom_memory[i];
+    i = i+ 1;
+    if(i == SIZE)
+        i = 0;
+end
+endmodule
+/////////////sin_180////////////////////////////
+module sin180(   
+    output reg [7:0] invsin,
+    input wire clk
+    );
+parameter SIZE = 60;    
+reg [7:0] rom_memory [SIZE-1:0];
+integer i;
+initial begin
+    $readmemh("sin180.mem", rom_memory); //File with the signal
+    i = 0;
+end    
+//At every positive edge of the clock, output a sine wave sample.
+always@(posedge clk)
+begin
+    invsin =rom_memory[i] ;
+    i = i+ 1;
+    if(i == SIZE)
+        i = 0;
+end
+endmodule
+////////////////cos and inv cos/////////////////
+module cos_invcos(
+    input wire clk ,
+    output reg [7:0] cos
+    );
+parameter SIZE = 60;    
+reg [7:0] rom_memory [SIZE-1:0];
+integer i;
+initial begin
+    $readmemh("cose.mem", rom_memory); //File with the signal
+    i = 0;
+end    
+//At every positive edge of the clock, output a sine wave sample.
+always@(posedge clk)
+begin
+    cos = rom_memory[i];
+    i = i+ 1;
+    if(i == SIZE)
+        i = 0;
+end
+endmodule
+////////////////inv cos/////////////////
+module cos180(
+    input wire clk ,
+    output reg [7:0] cosiinv
+    );
+parameter SIZE = 60;    
+reg [7:0] rom_memory [SIZE-1:0];
+integer i;
+initial begin
+    $readmemh("cos180.mem", rom_memory); //File with the signal
+    i = 0;
+end    
+//At every positive edge of the clock, output a sine wave sample.
+always@(posedge clk)
+begin 
+    cosiinv =rom_memory[i];
+    i = i+ 1;
+    if(i == SIZE)
+        i = 0;
+end
+endmodule
+///////////////tff//////////////////
+module tff(q,q1,clk,t);
+output reg q,q1;
+input clk,t;
+initial begin
+q=0;
+q1=0;
+end
+always @(posedge clk)
+begin
+if(t)
+begin
+q=~q;
+q1=~q;
+end
+else
+begin
+q=q;
+q1=~q;
+end
+end
+endmodule
+///////////////Dff///////////////////
+module Dff(clk,D,Q);
+input wire clk,D;
+output reg Q;
+always@(posedge clk)
+begin
+	#5 Q<=D;
+end
+endmodule
+//////////////mux//////////////////
+module mux(D0,D1,S,Y);
+input wire S;
+input wire [7:0]D0;
+input wire [7:0]D1;
+output reg [7:0]Y;
+always@(D0 or D1 or S)
+begin
+	if(S)
+		Y = D1;
+	else
+		Y = D0;
+end
+endmodule
+//////////////adder/////////////
+module adder(A0,A1,Y);
+input wire [7:0]A0;
+input wire [7:0]A1;
+output reg [7:0]Y;
+always@(A0 or A1)
+begin
+Y=A0+A1;
+end
+endmodule
+////////////parallel to serial/////////
+/*module paralleltoserial(PSO,clk,rst ,Inputdata,load);
+input wire load,clk,rst;
+input wire [31:0]Inputdata;
+output reg PSO;
+reg [31:0]shift_reg=0;
+always@(posedge clk or negedge rst)
+begin
+if(!rst)
+shift_reg=32'b0;
+else
+begin
+if(load)
+	shift_reg = Inputdata;
+else
+	begin
+	PSO = shift_reg[0];
+	shift_reg={1'b0,shift_reg[31:1]};
+	end
+end
+end
+endmodule*/
+//////////mux//////////////
+module mux31(in,select,ou);
+input wire [31:0]in;
+input wire [4:0]select;
+output reg ou;
+always@(*)
+begin
+case(select)
+5'b00000:ou<=in[0];
+5'b00001:ou<=in[1];
+5'b00010:ou<=in[2];
+5'b00011:ou<=in[3];
+5'b00100:ou<=in[4];
+5'b00101:ou<=in[5];
+5'b00110:ou<=in[6];
+5'b00111:ou<=in[7];
+5'b01000:ou<=in[8];
+5'b01001:ou<=in[9];
+5'b01010:ou<=in[10];
+5'b01011:ou<=in[11];
+5'b01100:ou<=in[12];
+5'b01101:ou<=in[13];
+5'b01110:ou<=in[14];
+5'b01111:ou<=in[15];
+5'b10000:ou<=in[16];
+5'b10001:ou<=in[17];
+5'b10010:ou<=in[18];
+5'b10011:ou<=in[19];
+5'b10100:ou<=in[20];
+5'b10101:ou<=in[21];
+5'b10110:ou<=in[22];
+5'b10111:ou<=in[23];
+5'b11000:ou<=in[24];
+5'b11001:ou<=in[25];
+5'b11010:ou<=in[26];
+5'b11011:ou<=in[27];
+5'b11100:ou<=in[28];
+5'b11101:ou<=in[29];
+5'b11110:ou<=in[30];
+5'b11111:ou<=in[31];
+default:ou<=1'b0;
+endcase
+end
+endmodule
+/////////////////5bit counter/////////////
+module fivebitcounter(clk,rst,count);
+input wire clk,rst;
+output reg [4:0]count;
+initial 
+count=5'b00000;
+always@(posedge clk or negedge rst)
+begin
+	if(!rst)
+		count<=5'b00000;
+	else
+		count <= count+1;
+end
+endmodule
