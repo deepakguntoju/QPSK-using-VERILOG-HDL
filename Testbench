@@ -1,0 +1,22 @@
+`timescale 1ns / 1ps
+
+module qpsktest;
+wire [7:0] QPSKoutput;
+reg [31:0] InputData;
+reg T,CLK,CLK2,reset;
+QPSK q1uut(.QPSKoutput(QPSKoutput),.InputData(InputData),
+.T(T),.CLK(CLK),.reset(reset),.CLK2(CLK2)
+);
+initial
+begin
+CLK=0;
+CLK2=0;
+T=0;
+InputData=32'b01010111011001000100011001111001;
+reset=1'b0;
+#10 T<=1'b1;
+#2 reset=1'b1;
+end
+always #10 CLK=~CLK;
+always #1500 CLK2=~CLK2;
+endmodule
